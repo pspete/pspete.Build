@@ -39,10 +39,10 @@ Scripts run on Windows PowerShell 5.1 and PowerShell 7. `install.ps1`, `test.ps1
 | `help.ps1` | Compile `docs/collections/_commands` to `<Module>/en-US/<Module>-help.xml` | `ModuleName` |
 | `test.ps1` | Run `Tests/` and the generic module suite (`tests/Module.Tests.ps1`), write `TestResults.xml` (JUnit); `-CodeCoverage` writes `coverage.xml` (JaCoCo) and uploads to Codecov | `CodeCoverage`, `ModuleName`, `ModuleGuid` |
 | `changelog.ps1` | Fail when `## Unreleased` is empty or `- N/A` (pull requests) | |
-| `version.ps1` | Output the next version: `## Unreleased (major)` → major, `### Added` → minor, else patch; `-PrereleaseLabel` appends `<label><n>` | `ModuleName`, `PrereleaseLabel` |
+| `version.ps1` | Output the next version: `## Unreleased (major)` → major, `### Added` → minor, else patch; `-PrereleaseLabel` appends `<label><n>`, the next number after the PSGallery and remote tags (a tag on the current commit is reused) | `ModuleName`, `PrereleaseLabel` |
 | `build.ps1` | Combine functions into one `.psm1`, write the versioned manifest, copy resources | `ModuleName`, `BuildVersion`, `OutputFolder` |
 | `deploy-github.ps1` | Commit the version, CHANGELOG, external help and release notes post `[skip ci]`; create the GitHub Release | `ModuleName`, `Version`, `Branch`, `Repository`, `ModulePath`, `ArchivePath`, `ReleaseVersionGate`, `GitUserName`, `ReleaseNotesPath` |
-| `deploy-psgallery.ps1` | Verify the package, then publish it to the PowerShell Gallery | `ModuleName`, `Version`, `Branch`, `ModulePath`, `ReleaseVersionGate`, `CommitMessage` |
+| `deploy-psgallery.ps1` | Verify the package, then publish it to the PowerShell Gallery; skipped when the version is already published | `ModuleName`, `Version`, `Branch`, `ModulePath`, `ReleaseVersionGate`, `CommitMessage` |
 | `release-notes.ps1` | Write a release notes post for each major.minor version (called by `deploy-github.ps1`) | |
 | `retry.ps1` | `Invoke-Retry`, dot-sourced for PowerShell Gallery calls | |
 

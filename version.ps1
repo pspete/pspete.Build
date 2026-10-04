@@ -3,7 +3,8 @@ Output the next module version, from the source manifest (last released version)
 - '## Unreleased (major)'      - major, e.g. 2.5.7 -> 3.0.0
 - '### Added' under Unreleased - minor, e.g. 2.5.7 -> 2.6.0
 - anything else                - patch, e.g. 2.5.7 -> 2.5.8
-With -PrereleaseLabel, the next unpublished '<label><n>' of that version on the PSGallery is appended, e.g. 2.6.0-preview3.
+With -PrereleaseLabel, '<label><n>' is appended, e.g. 2.6.0-preview3: n is the highest of that version on the PSGallery
+and in remote tags 'v<version>-<label><n>' (git ls-remote origin), + 1. A tag on the checked out commit is a re-run, which keeps its n.
 ---------------------------------#>
 [CmdletBinding()]
 param(
@@ -66,7 +67,26 @@ If ($PrereleaseLabel) {
 	} |
 		Where-Object { $_.Version.ToString(3) -eq $Next -and $_.Prerelease -match $Pattern } |
 		ForEach-Object { [int]($_.Prerelease -replace $Pattern, '$1') }
-	$Next = "$Next-$PrereleaseLabel$(($Published | Measure-Object -Maximum).Maximum + 1)"
+
+	#Remote tags count too: a 'Manual Deployment' creates the GitHub prerelease without publishing it.
+	#A tag on the checked out commit is a re-run of that commit, which keeps its number.
+	$Head = git -C $SourceFolder rev-parse HEAD
+	if ($LASTEXITCODE -ne 0) { throw "git rev-parse exited with code $LASTEXITCODE" }
+	$TagPattern = "^(\w+)\trefs/tags/v$([regex]::Escape($Next))-$PrereleaseLabel(\d+)(\^\{\})?$"
+	$Tags = Invoke-Retry {
+		$Refs = git -C $SourceFolder ls-remote --tags origin
+		if ($LASTEXITCODE -ne 0) { throw "git ls-remote exited with code $LASTEXITCODE" }
+		$Refs
+	} |
+		ForEach-Object { if ($_ -match $TagPattern) { [pscustomobject]@{ Commit = $Matches[1]; Number = [int]$Matches[2] } } }
+
+	$Rerun = @($Tags | Where-Object { $_.Commit -eq $Head })
+	$Number = if ($Rerun) {
+		($Rerun.Number | Measure-Object -Maximum).Maximum
+	} else {
+		(@($Published) + @($Tags | ForEach-Object Number) | Measure-Object -Maximum).Maximum + 1
+	}
+	$Next = "$Next-$PrereleaseLabel$Number"
 
 }
 

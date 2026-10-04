@@ -3,6 +3,7 @@ Auto-publish changes to main or master branch as a new module version in the PSG
 A prerelease version (e.g. 1.3.0-preview1) publishes from branch vNext.
 - Only publish if build version is greater than or equal to ReleaseVersionGate
 - Skip Auto-publish with specific commit message of "Manual Deployment"
+- Skip when the version is already on the PSGallery (re-run of a failed release)
 
 Requires this secret as an environment variable:
   psgallery_key         - PowerShell Gallery API key
@@ -43,6 +44,23 @@ If (($Branch -in $ReleaseBranches) -and ([version]$ModuleVersion -ge [version]$R
 		Write-Host 'Manual Deployment to PSGallery Required' -ForegroundColor Cyan
 		Write-Host 'Exiting' -ForegroundColor Cyan
 		exit
+
+	}
+
+	#A re-run of a failed release finds the version already published.
+	. (Join-Path $PSScriptRoot 'retry.ps1')
+	$Published = Invoke-Retry {
+		try {
+			Find-PSResource -Name $ModuleName -Version $Version -Prerelease:([bool]$Prerelease) -Repository PSGallery -ErrorAction Stop
+		} catch {
+			if ($_.FullyQualifiedErrorId -notlike 'PackageNotFound,*') { throw }
+		}
+	}
+
+	If ($Published) {
+
+		Write-Host "$ModuleName $Version already published to PSGallery; skipped." -ForegroundColor Cyan
+		exit 0
 
 	}
 

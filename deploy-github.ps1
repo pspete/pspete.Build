@@ -176,9 +176,16 @@ If ([version]$ModuleVersion -ge [version]$ReleaseVersionGate) {
 		'Content-type'  = 'application/json'
 	}
 
+	#A prerelease tag marks the built commit, which version.ps1 uses to recognise a re-run.
+	$Target = $Branch
+	if ($Prerelease) {
+		$Target = git -C $SourceFolder rev-parse HEAD
+		if ($LASTEXITCODE -ne 0) { throw "git rev-parse exited with code $LASTEXITCODE" }
+	}
+
 	$body = @{
 		tag_name         = $releaseName
-		target_commitish = $Branch
+		target_commitish = $Target
 		name             = $releaseName
 		body             = if ($ReleaseNotes) { $ReleaseNotes } else { "$ModuleName v$Version" }
 		draft            = $false
