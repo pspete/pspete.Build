@@ -17,7 +17,7 @@ git clone --depth 1 --branch v1 https://github.com/pspete/pspete.Build build
 
 `v1` always points to the latest `1.x.y` release. Breaking changes ship as `v2`. To test a change before release, clone a branch instead.
 
-Scripts run on Windows PowerShell 5.1 and PowerShell 7. `-SourceFolder` defaults to the current folder (the module repository root).
+Scripts run on Windows PowerShell 5.1 and PowerShell 7. `install.ps1`, `test.ps1` and the generic module suite also run on PowerShell 7 on Linux; `test.ps1 -CodeCoverage` is Windows-only. `-SourceFolder` defaults to the current folder (the module repository root).
 
 ## Module repository layout
 
@@ -56,3 +56,11 @@ Stable releases deploy from `main` or `master`. Prereleases deploy from `vNext`.
 | `access_token` | `deploy-github.ps1`: GitHub token with Contents read/write |
 | `github_email` | `deploy-github.ps1`: commit author email |
 | `psgallery_key` | `deploy-psgallery.ps1` |
+
+## GitHub Actions
+
+[pspete/GhCID](https://github.com/pspete/GhCID) is the reference workflow (`.github/workflows/ci.yml`). To use it in a module, copy it and adjust the `env:` block (`MODULE_NAME`, `MODULE_GUID`, `BUILD_REF`, `GIT_USER_NAME`, `RELEASE_VERSION_GATE`, `RELEASE_NOTES_PATH`, `PRERELEASE_LABEL`) and the trigger `paths`.
+
+Set repository secrets `CODECOV_TOKEN`, `access_token`, `git_email` and `psgallery_key` (for example with `gh secret set`). Actions secret names can't start with `GITHUB_`, so the workflow maps the `git_email` secret to the `github_email` environment variable.
+
+Every pull request needs an `## Unreleased` entry in `CHANGELOG.md`, or the CHANGELOG Entry job fails.
