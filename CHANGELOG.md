@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `build.ps1` merges two or more `FormatsToProcess` files into `<Module>.Format.ps1xml`, and two or more `TypesToProcess` files into `<Module>.Types.ps1xml`, and points the built manifest entries at them. Fewer files cut module import time.
+
 ## [1.0.1] - 2026-10-04
 
 ### Fixed

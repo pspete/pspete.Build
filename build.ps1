@@ -64,6 +64,89 @@ If ($Prerelease) {
 
 }
 
+#---------------------------------#
+# Merge format and type files     #
+#---------------------------------#
+#Each format or type file adds import overhead, so two or more are merged into one file and the manifest entry is replaced.
+$ManifestData = Import-PowerShellDataFile $ManifestPath
+$MergedFiles = @()
+
+foreach ($Key in 'FormatsToProcess', 'TypesToProcess') {
+
+	$Files = @(
+		$ManifestData.$Key |
+			Where-Object { $_ } |
+			ForEach-Object { (Resolve-Path -Path (Join-Path $SourcePath $_)).Path }
+	)
+
+	If ($Files.Count -lt 2) { continue }
+
+	If ($Key -eq 'FormatsToProcess') {
+		$MergedName = "$ModuleName.Format.ps1xml"
+		$RootName = 'Configuration'
+		$Sections = 'DefaultSettings', 'SelectionSets', 'Controls', 'ViewDefinitions'
+	} Else {
+		$MergedName = "$ModuleName.Types.ps1xml"
+		$RootName = 'Types'
+		$Sections = @()
+	}
+
+	Write-Host "Merging $Key into $MergedName" -ForegroundColor Cyan
+
+	$Merged = New-Object -TypeName System.Xml.XmlDocument
+	$null = $Merged.AppendChild($Merged.CreateXmlDeclaration('1.0', 'utf-8', $null))
+	$Root = $Merged.AppendChild($Merged.CreateElement($RootName))
+	foreach ($Section in $Sections) { $null = $Root.AppendChild($Merged.CreateElement($Section)) }
+
+	foreach ($File in $Files) {
+
+		Write-Host "`t$($File.Substring($SourcePath.Length + 1))"
+
+		$Source = New-Object -TypeName System.Xml.XmlDocument
+		$Source.Load($File)
+
+		If ($Source.DocumentElement.Name -ne $RootName) {
+			throw "$File root element is '$($Source.DocumentElement.Name)', expected '$RootName'"
+		}
+
+		foreach ($Node in $Source.DocumentElement.ChildNodes) {
+
+			If ($Node.NodeType -ne 'Element') { continue }
+
+			If ($Sections) {
+				$Target = $Root.SelectSingleNode($Node.Name)
+				If (-not $Target) { throw "$File has unsupported section '$($Node.Name)'" }
+				foreach ($Child in $Node.ChildNodes) {
+					If ($Child.NodeType -eq 'Element') { $null = $Target.AppendChild($Merged.ImportNode($Child, $true)) }
+				}
+			} Else {
+				$null = $Root.AppendChild($Merged.ImportNode($Node, $true))
+			}
+
+		}
+
+	}
+
+	foreach ($Section in @($Root.ChildNodes)) {
+		If (-not $Section.HasChildNodes) { $null = $Root.RemoveChild($Section) }
+	}
+
+	$WriterSettings = New-Object -TypeName System.Xml.XmlWriterSettings
+	$WriterSettings.Encoding = $Encoding
+	$WriterSettings.Indent = $true
+	$WriterSettings.IndentChars = "`t"
+	$WriterSettings.NewLineChars = "`r`n"
+	$Writer = [System.Xml.XmlWriter]::Create((Join-Path $OutputPath $MergedName), $WriterSettings)
+	try { $Merged.Save($Writer) } finally { $Writer.Dispose() }
+
+	$EntryPattern = "(?m)^([ \t]*)$Key[ \t]*=[ \t]*(@\([^)]*\)|'[^']*'|""[^""]*"")"
+	If ($Manifest -notmatch $EntryPattern) { throw "$ManifestPath $Key entry not found" }
+	$Manifest = [regex]::Replace($Manifest, $EntryPattern, "`${1}$Key = @('$MergedName')")
+
+	$MergedFiles += $Files
+
+}
+
 [System.IO.File]::WriteAllText((Join-Path $OutputPath "$ModuleName.psd1"), $Manifest, $Encoding)
 
 #---------------------------------#
@@ -108,7 +191,7 @@ $Content = @(
 Write-Host 'Copying Module Resources' -ForegroundColor Cyan
 
 Get-ChildItem -Path $SourcePath -File -Recurse |
-	Where-Object { $_.Extension -notin '.ps1', '.psm1', '.psd1' -or $_.FullName -in $ScriptsToProcess } |
+	Where-Object { ($_.Extension -notin '.ps1', '.psm1', '.psd1' -or $_.FullName -in $ScriptsToProcess) -and $_.FullName -notin $MergedFiles } |
 	ForEach-Object {
 
 		$Destination = Join-Path $OutputPath $_.FullName.Substring($SourcePath.Length + 1)
