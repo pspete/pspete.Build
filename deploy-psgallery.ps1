@@ -72,6 +72,8 @@ If (($Branch -in $ReleaseBranches) -and ([version]$ModuleVersion -ge [version]$R
 
 	#The package is published to a temporary local repository, installed from it and imported;
 	#the same nupkg is then published to the PSGallery.
+	#RequiredModules are not in the temporary repository, so its dependency checks are skipped;
+	#Import-Module still needs them installed.
 	$TempFolder = Join-Path ([System.IO.Path]::GetTempPath()) ([System.IO.Path]::GetRandomFileName())
 	$RepoFolder = Join-Path $TempFolder 'repo'
 	$SaveFolder = Join-Path $TempFolder 'save'
@@ -83,10 +85,10 @@ If (($Branch -in $ReleaseBranches) -and ([version]$ModuleVersion -ge [version]$R
 	Try {
 
 		Register-PSResourceRepository -Name $TempRepository -Uri $RepoFolder -Trusted -ErrorAction Stop
-		Publish-PSResource -Path $ModulePath -Repository $TempRepository -ErrorAction Stop
+		Publish-PSResource -Path $ModulePath -Repository $TempRepository -SkipDependenciesCheck -ErrorAction Stop
 		$NupkgPath = Join-Path $RepoFolder "$ModuleName.$Version.nupkg"
 
-		Save-PSResource -Name $ModuleName -Version $Version -Prerelease:([bool]$Prerelease) -Repository $TempRepository -Path $SaveFolder -TrustRepository -ErrorAction Stop
+		Save-PSResource -Name $ModuleName -Version $Version -Prerelease:([bool]$Prerelease) -Repository $TempRepository -Path $SaveFolder -TrustRepository -SkipDependencyCheck -ErrorAction Stop
 		$Manifest = Join-Path (Join-Path (Join-Path $SaveFolder $ModuleName) $ModuleVersion) "$ModuleName.psd1"
 		$Data = Import-PowerShellDataFile -Path $Manifest
 		$Expected = @($Data.FunctionsToExport)

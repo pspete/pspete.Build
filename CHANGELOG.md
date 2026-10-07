@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.1] - 2026-10-07
+
+### Fixed
+
+- `deploy-psgallery.ps1` skips the dependency checks against its temporary verify repository, so a module with `RequiredModules` no longer fails with `Dependency '<name>' was not found in repository '<Module>-Verify'`.
+
 ## [1.2.0] - 2026-10-07
 
 ### Added
