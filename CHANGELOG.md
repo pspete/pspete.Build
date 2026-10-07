@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.0] - 2026-10-07
+
+### Added
+
+- `release-notes.ps1` writes `version: x.y.z` to the post front matter, and a patch updates it (adding it to an older post that lacks it).
+
 ## [1.1.0] - 2026-10-06
 
 ### Added

@@ -2,7 +2,7 @@
 Write release notes for a stable version to a Jekyll post, one post per major.minor version:
 - x.y.0 creates '<yyyy-MM-dd>-<modulename>-release-<x>-<y>.md'
 - x.y.z adds a '## [x.y.z]' section at the top of the existing x.y post (created when missing),
-  sets its date and adds new tags.
+  sets its date and version and adds new tags.
 Tags are 'Release Notes' plus each exported function named in backticks in the notes.
 Outputs the post path.
 ---------------------------------#>
@@ -52,6 +52,15 @@ If ($Post) {
 	}
 
 	$Header = [regex]::Replace($FrontMatter.Groups[1].Value, '(?m)^date:.*$', "date: $PostDate 00:00:00")
+	If ($Header -match '(?m)^version:') {
+
+		$Header = [regex]::Replace($Header, '(?m)^version:.*$', "version: $Version")
+
+	} Else {
+
+		$Header = [regex]::Replace($Header, '(?m)^(date:.*)$', "`$1`nversion: $Version")
+
+	}
 	$TagBlock = [regex]::Match($Header, '(?m)^tags:\n((?:[ \t]+-[ \t].*(?:\n|$))*)')
 
 	$Existing = @(
@@ -83,6 +92,7 @@ If ($Post) {
 			'---'
 			"title: `"$ModuleName Release $($Version.Major).$($Version.Minor)`""
 			"date: $PostDate 00:00:00"
+			"version: $Version"
 			'tags:'
 			$Tags | ForEach-Object { "  - $_" }
 			'---'
