@@ -32,10 +32,17 @@ Describe 'Module' -Tag 'Consistency' {
 	#Define Path to Module Manifest
 	$ManifestPath = Join-Path "$ModulePath" "$ModuleName.psd1"
 
-	Get-Module -Name $ModuleName -All | Remove-Module -Force -ErrorAction Ignore
+	#Reimporting would orphan the module instance that other containers' InModuleScope blocks bound to at discovery.
+	$Module = Get-Module -Name $ModuleName | Where-Object { $_.ModuleBase -eq $ModulePath } | Select-Object -First 1
 
-	$Module = Import-Module -Name "$ManifestPath" -ArgumentList $true -Force -ErrorAction Stop -PassThru |
-		Where-Object { $_.Name -eq $ModuleName }
+	if (-not $Module) {
+
+		Get-Module -Name $ModuleName -All | Remove-Module -Force -ErrorAction Ignore
+
+		$Module = Import-Module -Name "$ManifestPath" -ArgumentList $true -Force -ErrorAction Stop -PassThru |
+			Where-Object { $_.Name -eq $ModuleName }
+
+	}
 
 	#Get Public Function Names
 	#The built module is a single concatenated psm1 with no Public folder, so fall back to the manifest export list.

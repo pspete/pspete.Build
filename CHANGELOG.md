@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.3] - 2026-10-08
+
+### Fixed
+
+- `tests/Module.Tests.ps1` reuses the module already imported from `ModulePath` instead of reimporting it. The reimport ran at discovery, after the `Tests/` files had bound their `InModuleScope` blocks to the first instance, so a `Mock -ModuleName` patched the new instance and the test called the real function.
+
 ## [1.2.2] - 2026-10-08
 
 ### Fixed
