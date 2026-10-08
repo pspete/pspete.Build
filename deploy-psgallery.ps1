@@ -4,6 +4,7 @@ A prerelease version (e.g. 1.3.0-preview1) publishes from branch vNext.
 - Only publish if build version is greater than or equal to ReleaseVersionGate
 - Skip Auto-publish with specific commit message of "Manual Deployment"
 - Skip when the version is already on the PSGallery (re-run of a failed release)
+- A 409 from the PSGallery publish (version already exists) counts as published
 
 Requires this secret as an environment variable:
   psgallery_key         - PowerShell Gallery API key
@@ -135,8 +136,14 @@ If (($Branch -in $ReleaseBranches) -and ([version]$ModuleVersion -ge [version]$R
 
 	} Catch {
 
-		Write-Host "Failed - $_." -ForegroundColor Red
-		throw $_
+		#A slow Gallery response can surface as 409 after the push was accepted.
+		If ("$_" -match '\b409\b') {
+			Write-Host 'OK' -ForegroundColor Green
+			Write-Warning "PSGallery returned 409; $ModuleName $Version is already published. $_"
+		} Else {
+			Write-Host "Failed - $_." -ForegroundColor Red
+			throw $_
+		}
 
 	} Finally {
 
