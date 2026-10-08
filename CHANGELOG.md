@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.2] - 2026-10-08
+
+### Fixed
+
+- `deploy-psgallery.ps1` treats a 409 from the PSGallery publish (version already exists) as published, with a warning. A slow Gallery response after an accepted push no longer fails the release.
+
 ## [1.2.1] - 2026-10-07
 
 ### Fixed
