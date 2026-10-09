@@ -24,7 +24,10 @@ $HelpPath = Join-Path $HelpFolder "$ModuleName-help.xml"
 #---------------------------------#
 Write-Host "`tInstalling: Microsoft.PowerShell.PlatyPS..." -NoNewline
 . (Join-Path $PSScriptRoot 'retry.ps1')
-Invoke-Retry { Install-PSResource -Name Microsoft.PowerShell.PlatyPS -Repository PSGallery -Scope CurrentUser -TrustRepository -Reinstall }
+#A copy already in the CurrentUser scope (e.g. restored from a CI cache) is not downloaded again.
+if (-not (Get-InstalledPSResource -Name Microsoft.PowerShell.PlatyPS -Scope CurrentUser -ErrorAction SilentlyContinue)) {
+	Invoke-Retry { Install-PSResource -Name Microsoft.PowerShell.PlatyPS -Repository PSGallery -Scope CurrentUser -TrustRepository }
+}
 Import-Module -Name Microsoft.PowerShell.PlatyPS
 Write-Host " OK ($((Get-Module Microsoft.PowerShell.PlatyPS).Version))" -ForegroundColor Green
 
