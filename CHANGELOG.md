@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.2.4] - 2026-10-09
+
+### Changed
+
+- `install.ps1` and `help.ps1` skip the PSGallery install for a module already in the CurrentUser scope, such as one restored from a CI cache. `install.ps1` no longer forces a reinstall.
+
 ## [1.2.3] - 2026-10-08
 
 ### Fixed
